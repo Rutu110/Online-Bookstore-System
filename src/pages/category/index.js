@@ -1,71 +1,114 @@
-import { makeStyles } from "@material-ui/core/styles";
-import { colors } from "../../../constant/constant";
+import React, { useEffect, useState } from "react";
+import { editStyle } from "./style";
+import * as Yup from "yup";
+import { Typography, TextField, Button } from "@material-ui/core";
+import { useNavigate, useParams } from "react-router-dom";
+import categoryService from "../../../service/category.service";
+import { Formik } from "formik";
+import ValidationErrorMessage from "../../../components/ValidationErrorMessage/index";
+import { toast } from "react-toastify";
+import Shared from "../../../utils/shared";
 
-const editStyle = makeStyles((theme) => ({
-  editWrapper: {
-    padding: "42px 0 80px",
-    "@media (max-width: 991px)": {
-      padding: "35px 0 50px",
-    },
-    "@media (max-width: 767px)": {
-      padding: "35px 0 40px",
-    },
-    "& .btn-wrapper": {
-      "& .btn": {
-        height: "40px",
-        lineHeight: "40px",
-        borderRadius: "4px",
-        textTransform: "none",
-        fontSize: "16px",
-        minWidth: "100px",
-        "&+.btn": {
-          marginLeft: "10px",
-        },
-      },
-    },
-    "& .form-row-wrapper": {
-      display: "flex",
-      flexWrap: "wrap",
-      margin: "0 -15px",
-      "& .form-col": {
-        padding: " 0 15px",
-        maxWidth: "50%",
-        flex: "0 0 50%",
-        position: "relative",
-        "@media(max-width:767px)": {
-          maxWidth: "100%",
-          flex: "0 0 100%",
-        },
-        "&.full-width": {
-          maxWidth: "100%",
-          flex: "0 0 100%",
-        },
-        "& p": {
-          "&.text-danger": {
-            fontSize: "14px",
-            color: colors.primary,
-            position: "absolute",
-            top: "70%",
-            margin: "0",
-          },
-        },
-      },
-      "& .MuiInputBase-formControl": {
-        marginBottom: "35px",
-      },
-    },
-    "& .dropdown-wrapper": {
-      "& .MuiOutlinedInput-notchedOutline": {
-        borderRadius: "0",
-      },
-      "& .MuiInputBase-input": {
-        backgroundColor: colors.white,
-        height: "40px",
-        lineHeight: "40px",
-        borderRadius: "4px",
-      },
-    },
-  },
-}));
+const EditCategory = () => {
+  const classes = editStyle();
+  const navigate = useNavigate();
+  const initialValues = { name: "" };
+  const [initialValueState, setInitialValueState] = useState(initialValues);
+  const { id } = useParams();
 
-export { editStyle };
+  useEffect(() => {
+    if (id) getCategoryById();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  const validationSchema = Yup.object().shape({
+    name: Yup.string().required("Category Name is required"),
+  });
+
+  const getCategoryById = () => {
+    categoryService.getById(Number(id)).then((res) => {
+      setInitialValueState({
+        id: res.id,
+        name: res.name,
+      });
+    });
+  };
+
+  const onSubmit = (values) => {
+    categoryService
+      .save(values)
+      .then((res) => {
+        toast.success(Shared.messages.UPDATED_SUCCESS);
+        navigate("/category");
+      })
+      .catch((e) => toast.error(Shared.messages.UPDATED_FAIL));
+  };
+  return (
+    <div className={classes.editWrapper}>
+      <div className="container">
+        <Typography variant="h1">{id ? "Edit" : "Add"} Category</Typography>
+        <Formik
+          initialValues={initialValueState}
+          validationSchema={validationSchema}
+          enableReinitialize={true}
+          onSubmit={onSubmit}
+        >
+          {({
+            values,
+            errors,
+            touched,
+            handleBlur,
+            handleChange,
+            handleSubmit,
+          }) => (
+            <form onSubmit={handleSubmit}>
+              <div className="form-row-wrapper">
+                <div className="form-col">
+                  <TextField
+                    id="first-name"
+                    name="name"
+                    label="Category Name *"
+                    variant="outlined"
+                    inputProps={{ className: "small" }}
+                    value={values.name}
+                    onBlur={handleBlur}
+                    onChange={handleChange}
+                  />
+                  <ValidationErrorMessage
+                    message={errors.name}
+                    touched={touched.name}
+                  />
+                </div>
+              </div>
+              <div className="btn-wrapper">
+                <Button
+                  className="green-btn btn"
+                  variant="contained"
+                  type="submit"
+                  color="primary"
+                  disableElevation
+                >
+                  Save
+                </Button>
+                <Button
+                  className="pink-btn btn"
+                  variant="contained"
+                  type="button"
+                  color="primary"
+                  disableElevation
+                  onClick={() => {
+                    navigate("/category");
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          )}
+        </Formik>
+      </div>
+    </div>
+  );
+};
+
+export default EditCategory;
